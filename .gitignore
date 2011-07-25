@@ -1,0 +1,13 @@
+*.pyc
+.project
+.pydevproject
+.settings/*
+env/*
+local_settings.py
+*.Python
+*.DS_Store
+*.tmproj
+tv2politikk/static/admin_media
+tv2politikk/collected_staticfiles/*
+tv2politikk/media/*
+tv2politikk/static/compressed/*
