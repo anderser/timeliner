@@ -1,0 +1,187 @@
+
+<!DOCTYPE html> 
+<html> 
+  <head> 
+  <meta charset="utf-8">
+    <link href="http://propublica.github.com/timeline-setter/public/stylesheets/timeline-setter.css" rel="stylesheet" /> 
+    <script src="http://propublica.github.com/timeline-setter/public/javascripts/vendor/jquery-min.js"></script> 
+    <script src="http://propublica.github.com/timeline-setter/public/javascripts/vendor/underscore-min.js"></script> 
+    <script src="timeline-setter.js"></script> 
+    <style> 
+      #timeline_setter .TS-item_label a {
+        color:#2262CC;
+      }
+      #timeline_setter .TS-item_label a:hover {
+        text-decoration:underline;
+      }
+      #timeline_setter .TS-permalink {
+        float: right;
+        }
+      #timeline_setter .TS-notchbar_container {
+        
+        height: 50px;
+      
+      }
+      
+      #timeline_setter {
+      
+        width: 680px;
+      
+      }
+      
+      #timeline_setter .TS-notchbar  {
+      
+         height: 50px; 
+     
+      }
+      
+      #timeline_setter .TS-item_prettydate {
+      
+        margin: 0px;
+        padding: 3px;
+        font-size: 10px;
+        font-weight: normal;
+        
+      }
+    </style> 
+  </head> 
+  <body style="height: 100%"> 
+    
+    <div id="timeline_setter"> 
+      <div id="TS-top_matter_container"> 
+        <div class="TS-controls"> 
+          <a href="#" class="TS-zoom TS-zoom_in"><span class="TS-controls_inner_text TS-zoom_inner_text">+</span></a> 
+          <a href="#" class="TS-zoom TS-zoom_out"><span class="TS-controls_inner_text TS-zoom_inner_text">-</span></a> 
+            &nbsp;&nbsp;&nbsp;&nbsp;
+          <a href="#" class="TS-choose TS-choose_prev">&laquo; <span class="TS-controls_inner_text">Forrige</span></a> 
+          <a href="#" class="TS-choose TS-choose_next"><span class="TS-controls_inner_text">Neste</span> &raquo;</a> 
+        </div> 
+        <div class="TS-series_nav_container"></div> 
+      </div> 
+ 
+      <div class="TS-notchbar_container"> 
+        <div class="TS-notchbar"></div> 
+      </div> 
+      <div id="TS-card_scroller"> 
+        <div id="TS-card_scroller_inner"> 
+        </div> 
+      </div> 
+    </div> 
+ 
+    <script type="text/javascript"> 
+
+    
+      $(function() {
+        var reqsDone   = 0;
+        var tsTimeline = [];
+                
+
+        
+        var url = "http://api.tv2.no/articles/system/topicRoot/angrepet_p__oslo_og_ut_ya?callback=?&count=100&format=json&images=e"
+        //var url = "http://api.tv2.no/articles/nyheter/utenriks?callback=?&count=50&format=json&images=e"
+            	
+        var getNews = function() {
+
+            $.getJSON(url, function(data) {
+
+                   twitterToTS(data);
+                   TimelineSetter.Timeline.boot(tsTimeline);
+                   
+            });
+        }
+        
+
+        var twitterToTS = function(data) {
+            _(data.article).each(function(item) {
+            	 var datum             = {};
+                 
+                 datum['timestamp']    = Date.parse(item.published['#text']);
+                 datum['date']         = item.published['#text'];
+                 datum['display_date'] = humanDate(datum['timestamp']);
+                 datum['title']        = item.title;
+                 datum['description']  = item.lead;
+
+                 if (datum['description'] == "") {
+                	 datum['description'] = " ";
+                 }
+                 datum['link']         = item.url;
+                 datum['series']       = "Artikler om terrorangrepet" //item.section;
+
+                try
+	                 {
+	                	 img = "<img src='" + item.images.image.versions.version.url + "'>";
+	                 }
+                
+                catch(err)
+                 
+	                 {
+	            	     img = "";
+	                 }
+   
+                 datum['html'] = img
+                 
+                 tsTimeline.push(datum);
+            });
+          };
+
+          var humanDate = function(timestamp) {
+              var months = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sept', 'okt', 'nov', 'des']
+              var d         = new Date(timestamp);
+              var strDate   = (d.getDate() + 1) + '. ' + months[d.getMonth()] + ", "
+              var strTime   = d.getHours() + "." + d.getMinutes()
+              return strDate + strTime;
+            };
+      
+ 
+        var padNumber = function(number) {
+          return (number < 10 ? '0' : '') + number;
+        };
+ 
+        getNews();
+      });
+
+      
+      
+    </script> 
+    <script id="TS-year_notch_tmpl" type="text/jst"> 
+      <div class="TS-year_notch TS-year_notch_<%= timestamp %>">
+        <span class="TS-year_notch_year_text"><%= human %></span>
+      </div>
+    </script> 
+    <script id="TS-notch_tmpl" type="text/jst"> 
+      <div class="TS-notch TS-notch_<%= timestamp %> TS-notch_<%= series.replace(/\W/, "") %> TS-notch_color_<%= topcolor %>"></div>
+    </script> 
+    <script id="TS-series_legend_tmpl" type="text/jst"> 
+        <div class="TS-series_legend_item TS-series_legend_item<%= name.replace(/\W/, "") %>">
+          <span class="TS-series_legend_swatch TS-series_legend_swatch_<%= color %>">&nbsp;</span> <span class="TS-series_legend_text"><%= name %></span>
+        </div>
+    </script> 
+    <script id="TS-card_tmpl" type="text/jst"> 
+    <div class="TS-card_container TS-card_container_<%= (card.get("series") || "").replace(/\W/, "") %>">
+    <div class="TS-css_arrow TS-css_arrow_up TS-css_arrow_color_<%= card.get("topcolor") %>"></div>
+      <div class="TS-item TS-item_color_<%= card.get("topcolor") %>" data-timestamp="<%= card.get("timestamp") %>">
+        <div class="TS-item_year">
+           <p class="TS-item_prettydate"><%= card.get("display_date") %></p>
+          <span class="TS-item_year_text"><%= card.get("title") %></span>
+          
+        </div>
+        <div class="TS-item_label">
+    <div class="TS-permalink">&#8734;</div>
+          <% if (!_.isEmpty(card.get("html"))){ %>
+            <div class="TS-item_user_html">
+              <%= card.get("html") %>
+            </div>
+          <% } %>
+          <%= card.get("description") %>
+        
+        </div>
+          <% if (!_.isEmpty(card.get("link"))){ %>
+              <div class="TS-read_btn"><a target="_blank" href="<%= card.get("link") %>">Les mer</a></div>
+          <% } %>
+ 
+        
+      </div>
+    </div>
+    </script> 
+  </body> 
+</html>

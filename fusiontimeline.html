@@ -1,0 +1,269 @@
+
+<!DOCTYPE html> 
+<html> 
+  <head> 
+  <meta charset="utf-8">
+    <link href="css/timeline-setter.css" rel="stylesheet" /> 
+    <script src="js/jquery-min.js"></script> 
+    <script src="js/underscore-min.js"></script> 
+    <script src="js/timeline-setter.js"></script> 
+    <script src="js/date-nn-NO.js"></script>
+    <style> 
+    
+     #timeline_setter .TS-item_label {
+    font-family: Arial, Helvetica;
+    font-size: 12px;
+    line-height: 16px;
+}
+    
+      #timeline_setter .TS-item_label a {
+        color:#2262CC;
+      }
+      #timeline_setter .TS-item_label a:hover {
+        text-decoration:underline;
+      }
+      #timeline_setter .TS-permalink {
+        float: right;
+        }
+      #timeline_setter .TS-notchbar_container {
+        
+        height: 50px;
+      
+      }
+      
+      #timeline_setter {
+      
+        width: 680px;
+      
+      }
+      
+      #timeline_setter .TS-item {
+		    background: none repeat scroll 0 0 #F7F7F7;
+		    border: 1px solid #EBEBEB;
+		    border-radius: 3px 3px 3px 3px;
+		    color: #333333;
+		    min-width: 250px;
+		    
+		    padding: 10px;
+		    position: absolute;
+		    z-index: 1;
+		}
+      
+      #timeline_setter .TS-item_year {
+        width: 100%;
+        padding-bottom: 5px;
+      }
+      
+      #timeline_setter .TS-notchbar  {
+      
+         height: 50px; 
+     
+      }
+      
+      #timeline_setter .TS-notch  {
+      
+         margin-top: 15px; 
+         width: 6px;
+     
+      }
+      
+      #timeline_setter .TS-item_prettydate {
+      
+        margin: 0px;
+        padding: 3px;
+        font-size: 10px;
+        font-weight: normal;
+        
+      }
+    </style> 
+  </head> 
+  <body style="height: 100%"> 
+    
+    <div id="timeline_setter"> 
+      <div id="TS-top_matter_container"> 
+        <div class="TS-controls"> 
+          <a href="#" class="TS-zoom TS-zoom_in"><span class="TS-controls_inner_text TS-zoom_inner_text">+</span></a> 
+          <a href="#" class="TS-zoom TS-zoom_out"><span class="TS-controls_inner_text TS-zoom_inner_text">-</span></a> 
+            &nbsp;&nbsp;&nbsp;&nbsp;
+          <a href="#" class="TS-choose TS-choose_prev">&laquo; <span class="TS-controls_inner_text">Forrige</span></a> 
+          <a href="#" class="TS-choose TS-choose_next"><span class="TS-controls_inner_text">Neste</span> &raquo;</a> 
+        </div> 
+        <div class="TS-series_nav_container"></div> 
+      </div> 
+ 
+      <div class="TS-notchbar_container"> 
+        <div class="TS-notchbar"></div> 
+      </div> 
+      <div id="TS-card_scroller"> 
+        <div id="TS-card_scroller_inner"> 
+        </div> 
+      </div> 
+    </div> 
+ 
+    <script type="text/javascript"> 
+
+    $.extend({
+    	  getUrlVars: function(){
+    	    var vars = [], hash;
+    	    var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+    	    for(var i = 0; i < hashes.length; i++)
+    	    {
+    	      hash = hashes[i].split('=');
+    	      vars.push(hash[0]);
+    	      vars[hash[0]] = hash[1];
+    	    }
+    	    return vars;
+    	  },
+    	  getUrlVar: function(name){
+    	    return $.getUrlVars()[name];
+    	  }
+    	});
+	
+    $(document).ready(function() {
+        
+        var reqsDone   = 0;
+        var tsTimeline = [];
+
+        var parsedata = function(obj) {
+            //data from fusion tables comes in strange format, this creates objects of data
+            var rows = [];
+            
+            for(var rowNum = 0; rowNum < obj.table.rows.length; rowNum++)
+                {
+                    var row = new Object();
+                    for (var colNum = 0; colNum < obj.table.cols.length; colNum++) {
+                        row[obj.table.cols[colNum]] = obj.table.rows[rowNum][colNum];
+                    }
+                    rows.push(row);
+                }
+            return rows;
+        }
+
+        var table_id = $.getUrlVar('table_id');
+
+        //console.log(table_id);
+        
+        var url = "https://www.google.com/fusiontables/api/query?sql=SELECT+*+FROM+" + table_id + "&jsonCallback=?";
+   	
+        var getNews = function() {
+
+            $.getJSON(url, function(data) {
+
+
+            	   records = parsedata(data);
+            	   
+                   fusionToTS(records);
+                   
+                   TimelineSetter.Timeline.boot(tsTimeline);
+                   
+            });
+        }
+        
+        var fusionToTS = function(data) {
+            _(data).each(function(item) {
+            	 var datum             = {};
+                 
+                 datum['timestamp']    = Date.parse(item.TheDate);
+                 datum['date']         = item.TheDate;
+                 datum['display_date'] = humanDate(datum['timestamp']);
+                 datum['title']        = item.Title;
+                 datum['progid']  = item.ProgId;
+                 datum['imageurl']  = item.Imageurl;
+                 datum['description']  = item.Description || "";
+
+                 /*
+                 if (_.isEmpty(datum['description']) || _.isNaN(datum['description']) || _.isNull(datum['description'])  || _.isUndefined(datum['description']) ) {
+                	 datum['description'] = "";
+                 }
+                 
+                 */
+                 
+                 datum['link']  = item.Link;
+                 datum['series']  = item.Series;
+                 datum['html'] = item.Html;             
+                 
+                 tsTimeline.push(datum);
+            });
+          };
+
+          var humanDate = function(timestamp) {
+              var months = ['januar', 'februar', 'mars', 'april', 'mai', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'desember']
+              var d         = new Date(timestamp);
+              var strDate   = d.getDate() + '. ' + months[d.getMonth()] + ", "
+              var strTime   = "kl. " + d.getHours() + "." + d.getMinutes()
+              
+              return timestamp.toString("d. MMMM kl. HH.mm");
+              //return strDate + strTime;
+            };
+      
+        var padNumber = function(number) {
+          return (number < 10 ? '0' : '') + number;
+        };
+ 
+        getNews();
+      });
+
+      
+    </script> 
+    <script id="TS-year_notch_tmpl" type="text/jst"> 
+      <div class="TS-year_notch TS-year_notch_<%= timestamp %>">
+        <span class="TS-year_notch_year_text"><%= human %></span>
+      </div>
+    </script> 
+    <script id="TS-notch_tmpl" type="text/jst"> 
+      <div class="TS-notch TS-notch_<%= timestamp %> TS-notch_<%= series.replace(/\W/, "") %> TS-notch_color_<%= topcolor %>"></div>
+    </script> 
+    <script id="TS-series_legend_tmpl" type="text/jst"> 
+        <div class="TS-series_legend_item TS-series_legend_item<%= name.replace(/\W/, "") %>">
+          <span class="TS-series_legend_swatch TS-series_legend_swatch_<%= color %>">&nbsp;</span> <span class="TS-series_legend_text"><%= name %></span>
+        </div>
+    </script> 
+    <script id="TS-card_tmpl" type="text/jst"> 
+    <div class="TS-card_container TS-card_container_<%= (card.get("series") || "").replace(/\W/, "") %>">
+    <div class="TS-css_arrow TS-css_arrow_up TS-css_arrow_color_<%= card.get("topcolor") %>"></div>
+      <div class="TS-item TS-item_color_<%= card.get("topcolor") %>" data-timestamp="<%= card.get("timestamp") %>">
+        <div class="TS-item_year">
+           <p class="TS-item_prettydate"><%= card.get("display_date") %></p>
+          <span class="TS-item_year_text"><%= card.get("title") %></span>
+          
+        </div>
+        <div class="TS-item_label">
+    <div class="TS-permalink">&#8734;</div>
+
+          <% if (!_.isEmpty(card.get("html"))){ %>
+            <div class="TS-item_user_html">
+              <%= card.get("html") %>
+            </div>
+          <% } %>
+
+        <% if (!_.isEmpty(card.get("progid"))){ %>
+            <div class="TS-item_user_html">
+             <iframe src="http://webtv.tv2.no/multimedia/webtv/dido/embed.html?progId=<%= card.get("progid") %>" style="width: 250px; height: 140px; border: 0" frameborder="0" scrolling="no"></iframe>
+            </div>
+          <% } %>
+
+        <% if (!_.isEmpty(card.get("imageurl"))){ %>
+            <div class="TS-item_user_html">
+              <img src="<%= card.get("imageurl") %>" />
+            </div>
+          <% } %>
+
+        <% if (!_.isEmpty(card.get("description"))){ %>
+            <div class="TS-item_user_description">
+              <%= card.get("description") %>
+            </div>
+          <% } %>
+        
+        </div>
+          <% if (!_.isEmpty(card.get("link"))){ %>
+              <div class="TS-read_btn"><a target="_blank" href="<%= card.get("link") %>">Les mer</a></div>
+          <% } %>
+ 
+        
+      </div>
+    </div>
+    </script> 
+    
+    
+  </body> 
+</html>
